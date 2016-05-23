@@ -1,0 +1,69 @@
+#!/bin/bash
+
+function usage() {
+cat<<EOF
+
+================= Docker Tools: (by Wallapop.com) ====================
+
+Usage: dt_clean [OPTIONS]
+
+Clean up orphaned docker volumes and images.
+
+OPTIONS:
+	-nv|--no-volumes    Skip volumes
+	-ni|--no-images     Skip images
+	-h, --help          Show this help
+ 
+======================================================================
+
+EOF
+exit -1
+}
+
+while [[ $# > 0 && $1 =~ -* ]]
+do
+key="$1"
+
+case $key in
+	-nv|--no-volumes)
+		CLEAN_VOLUMES="N"
+	;;
+
+	-ni|--no-images)
+		CLEAN_IMAGES="N"
+	;;
+	
+	-h|--help)
+		usage
+    ;;
+
+    *)
+		echo "Unknown option $key"
+		usage
+    ;;
+esac
+shift 
+done
+
+echo "Starting clean up..."
+
+if [ "$CLEAN_VOLUMES" == "N" ]; then
+	echo "Skip volumes clean up"
+else
+	echo "Clean up volumes"
+	docker run -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes
+fi
+
+if [ "$CLEAN_IMAGES" == "N" ]; then
+	echo "Skip images clean up"
+else
+	echo "Clean up images"
+	
+    for i in $( docker images | grep none | sed -e 's/[<noe> ]\+ \([^ ]\+\) .*/\1/g' ) ; do
+    	docker rmi $i
+    done
+
+
+fi
+
+echo "Clean up is finished"
