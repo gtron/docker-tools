@@ -1,0 +1,82 @@
+#!/bin/bash
+
+DIR=$(dirname $0)
+DCBIN=$DIR/docker-compose
+
+DCVER=1.7.1
+
+function usage() {
+
+cat<<EOF
+
+================= Docker Tools: (by Wallapop.com) ====================
+
+Usage: dt [OPTIONS]
+
+Shortcut for command docker-compose and other Docker Tools.
+
+First, it tries to find dt_ script and if not found runs docker-compose with passed parameters.
+
+dt login will run dt_login
+dt up -d run docker-compose up -d api
+  
+EOF
+
+if [ ! -z "$1" ]; then
+	 echo ----------------------------------------------------------------------
+	 echo  
+	 echo ">>> ERROR: $@"
+	 echo
+fi 
+
+echo ======================================================================
+echo
+
+exit -1
+
+}
+
+function installDockerCompose {
+  echo -n "Can't find Docker Compose ... Do you want to install it? [Y/n]"
+  read I
+
+  [[ "$I" = "Y" || "$I" = "y" ]] || exit -1
+
+  echo "Installing $DCBIN..."
+  sudo curl -L https://github.com/docker/compose/releases/download/$DCVER/docker-compose-`uname -s`-`uname -m` > $DCBIN
+  sudo chmod +x $DCBIN
+}
+
+function installDocker {
+
+  echo -n "Can't find Docker ... Do you want to install it? [Y/n]"
+  read I
+
+  [[ "$I" = "Y" || "$I" = "y" ]] || exit -1
+
+  echo "Installing Docker"
+  
+  sudo wget -O - https://get.docker.com | bash
+  sudo adduser $USER docker
+}
+
+[ ! -x "$DCBIN" ] && installDockerCompose
+
+
+[ -z $1 ] && usage
+
+if [[ ! -z "$COMPOSE_PROJECT_DIR" && -d "$COMPOSE_PROJECT_DIR" ]]; then
+  cd "$COMPOSE_PROJECT_DIR"
+fi
+
+FIRST_ARG=$1
+shift
+
+COMMAND="dt_$FIRST_ARG"
+
+if [ -f $DIR/$COMMAND ]; then
+  $COMMAND $@
+else
+  docker-compose $FIRST_ARG $@
+fi
+
