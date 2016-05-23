@@ -1,0 +1,61 @@
+#!/bin/bash
+
+function usage() {
+
+cat<<EOF
+
+================= Docker Tools: (by Wallapop.com) ====================
+
+Uso: dt_exec <contenedor|servicio> <cmd> [parametros para el cmd...]
+
+Execute a command inside the specified container.
+
+Note:
+
+* The container is searched with a regular expression ~= "<dir>_service" (i.e. "${BASENAME}_web*")  
+
+* The default command is bash
+
+* The container has to be running ! 
+  
+======================================================================
+
+EOF
+exit -1
+
+}
+
+BASENAME=$(basename $(pwd))
+
+
+[ -z "$1" ] && echo && echo "Please specify the container ..." && docker ps && usage
+
+DK_NAME=$1
+
+[ ! -z $COMPOSE_PROJECT_NAME ] && DK_IMAGE=$(docker ps -q -f name="${COMPOSE_PROJECT_NAME}_$1_.*")
+
+[ -z "$DK_IMAGE" ] && DK_IMAGE=$(docker ps -q -f name="${BASENAME}_$1_.*")
+
+[ -z "$DK_IMAGE" ] && DK_IMAGE=$(docker ps -q -f name="$1")
+
+
+echo Image: $DK_IMAGE
+
+[ -z "$DK_IMAGE" ] && echo "Please secify a running container ..." && docker ps && exit
+
+shift
+COMMAND="$@"
+[ -z "$COMMAND" ] && COMMAND=bash
+
+DK_CMD="docker exec"
+
+[ "$TERM" != "dumb" ] && DK_CMD="$DK_CMD -ti"
+
+CMD="$DK_CMD $DK_IMAGE $COMMAND"
+
+echo Running:
+echo $CMD
+
+$CMD
+
+
