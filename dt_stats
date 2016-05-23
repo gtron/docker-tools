@@ -1,0 +1,108 @@
+#!/bin/bash
+
+[ -z $COMPOSE_PROJECT_NAME ] &&  COMPOSE_PROJECT_NAME=$(cd $(dirname "$0")/.. && pwd -P | sed -s "s|.*/||" )
+
+function usage() {
+
+cat<<EOF
+
+================= Docker Tools: (by Wallapop.com) ====================
+
+Usage: dt_stats [ OPTIONS... ]
+
+Shows informations about the Docker Containers of the current environment.
+
+It uses the \$COMPOSE_PROJECT_NAME (now: $COMPOSE_PROJECT_NAME) by default.
+
+Options:
+
+    -p | --project <project> :
+    
+    		Displays information about that specific project.
+    		
+    		Example: dt_stats dock12
+
+  
+N.B.
+  Run from directory <path_to_wallapopmavenized>/docker  
+
+EOF
+
+
+if [ ! -z "$1" ]; then
+	 echo ----------------------------------------------------------------------
+	 echo  
+	 echo ">>> ERROR: $@"
+	 echo
+ 
+fi 
+
+echo ======================================================================
+echo
+
+exit -1
+
+}
+
+while [[ $# > 0 && "$1" =~ -* ]]
+do
+key="$1"
+
+case $key in
+	
+	-d|--debug)
+		DEBUG="1"
+		set -x
+		echo DEBUG! $DEBUG
+	;;
+	
+	-p|--project)
+	    shift
+		COMPOSE_PROJECT_NAME=$1
+	;;
+
+    -h|--help)
+    	usage
+    ;;
+    
+    *)
+		PARAMS="$PARAMS $key"
+	;;
+	
+esac
+shift
+done
+
+# [ -z $1 ] && usage
+
+
+IDS=$(docker ps -q --filter name=${COMPOSE_PROJECT_NAME}_ )
+
+# echo CONTAINERS: $IDS
+
+# COMMAND="docker stats --no-stream \$(docker ps -q --filter name=\${COMPOSE_PROJECT_NAME}_ ) | sed -e \"\$( docker ps --filter name=\${COMPOSE_PROJECT_NAME}_ --format \"{{.ID}} {{.Names}}\" | sed -e \"s/\(.*\) \(.*\)/s\/\1\/\2\t\/g;/\" )\""
+
+SEDLIST=$( docker ps --filter name=${COMPOSE_PROJECT_NAME}_ --format "{{.ID}} {{.Names}}" | sed -e "s/\(.*\) \(.*\)/s\/\1\/\2\\t\\t\/g;/" )
+
+# echo SED: $SEDLIST
+
+if [ "$SEDLIST" = "" ]; then
+
+cat <<EOF
+
+>>> ERROR !
+ 
+Can't find any running docker container for the project '$COMPOSE_PROJECT_NAME'
+
+
+EOF
+
+  exit -1
+fi 
+
+COMMAND="docker stats --no-stream $IDS"
+SED="sed -e \"$SEDLIST\""
+
+# echo "Running: $COMMAND | $SED"
+
+$COMMAND | sed -e "$SEDLIST" | sort
