@@ -43,8 +43,15 @@ function installDockerCompose {
   [[ "$I" = "Y" || "$I" = "y" ]] || exit -1
 
   echo "Installing $DCBIN..."
-  sudo curl -L https://github.com/docker/compose/releases/download/$DCVER/docker-compose-`uname -s`-`uname -m` > $DCBIN
-  sudo chmod +x $DCBIN
+  sudo wget -O $DCBIN https://github.com/docker/compose/releases/download/$DCVER/docker-compose-`uname -s`-`uname -m` 
+  RET=$?
+  
+  if [ "$RET" = "0" ]; then 
+  	sudo chmod +x $DCBIN
+  else
+  	sudo rm $DCBIN
+  	echo "Error downloading docker-compose to $DCBIN"
+  fi
 }
 
 function installDocker {
